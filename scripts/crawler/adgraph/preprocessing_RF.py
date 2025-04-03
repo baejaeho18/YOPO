@@ -54,20 +54,25 @@ unique_urls = []
 
 
 def check_string_in_html_file(file_path, target_string):
-    with open(file_path, 'r') as file:
-        try:
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:  # 기존 코드
             html_content = file.read()
+    except UnicodeDecodeError:
+        try:
+            with open(file_path, 'r', encoding='iso-8859-1') as file:  # ISO-8859-1로 재시도
+                html_content = file.read()
         except:
-            print("READING ERROR")
+            print("READING ERROR (ISO-8859-1 실패)")
             print(file_path)
             return False
-        decoded_html = html.unescape(html_content)
-        if f'"{target_string}"' in decoded_html:
-            return True
-        elif f"'{target_string}'" in decoded_html:
-            return True
-        else:
-            return False
+    except Exception as e:
+        print("READING ERROR")
+        print(file_path, e)
+        return False
+
+    decoded_html = html.unescape(html_content)
+    return f'"{target_string}"' in decoded_html or f"'{target_string}'" in decoded_html
+
 
 def create_dictionary(csv_file, mapping_dict_final_url_mapping):
     result_dict = {}
