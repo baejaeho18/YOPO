@@ -54,25 +54,20 @@ unique_urls = []
 
 
 def check_string_in_html_file(file_path, target_string):
-    try:
-        with open(file_path, 'r', encoding='utf-8') as file:  # 기존 코드
-            html_content = file.read()
-    except UnicodeDecodeError:
+    with open(file_path, 'r') as file:
         try:
-            with open(file_path, 'r', encoding='iso-8859-1') as file:  # ISO-8859-1로 재시도
-                html_content = file.read()
+            html_content = file.read()
         except:
-            print("READING ERROR (ISO-8859-1 실패)")
+            print("READING ERROR")
             print(file_path)
             return False
-    except Exception as e:
-        print("READING ERROR")
-        print(file_path, e)
-        return False
-
-    decoded_html = html.unescape(html_content)
-    return f'"{target_string}"' in decoded_html or f"'{target_string}'" in decoded_html
-
+        decoded_html = html.unescape(html_content)
+        if f'"{target_string}"' in decoded_html:
+            return True
+        elif f"'{target_string}'" in decoded_html:
+            return True
+        else:
+            return False
 
 def create_dictionary(csv_file, mapping_dict_final_url_mapping):
     result_dict = {}
@@ -109,6 +104,8 @@ log_history = set()
 # We sample 2,400 target requests
 # We only need 2,000 target requests; however, some requests may not work when processed with the bs4 library.
 # Therefore, we oversample the target requests and remove unnecessary ones in the later steps.
+error_files = set()  # 읽기 실패한 파일 저장
+
 while len(target_rows) < 2400:
     # Progress..
     if len(target_rows) % 100 == 0 and len(target_rows) not in log_history:
@@ -124,6 +121,10 @@ while len(target_rows) < 2400:
         html_file = mapping_dict[url]
     except Exception as e:
         continue
+
+    if html_file in error_files:  # 읽기 실패한 파일은 건너뜀
+        continue
+        
     is_AD = selected_row['CLASS']
     parsed_url = urlparse(url)
     domain = parsed_url.netloc
@@ -153,6 +154,7 @@ while len(target_rows) < 2400:
         # print("TRUE")
         # print(requested_url, html_file)
     else:
+        error_files.add(html_file)
         continue
         # print("FALSE")
         # print(requested_url, html_file)
